@@ -6,8 +6,9 @@ VAGRANTFILE_API_VERSION = "2"
 
 DEFAULT_CPU_COUNT = 2
 $script = <<SCRIPT
-GO_VERSION="1.7.4"
+GO_VERSION="1.7.5"
 
+sudo dpkg --add-architecture i386
 sudo apt-get update
 
 # Install base dependencies
@@ -15,10 +16,10 @@ sudo apt-get install -y build-essential curl git-core mercurial bzr libpcre3-dev
 
 # Install cross-compilation dependencies
 # ARM64 / Aarch64 compiler
-sudo apt-get install -y gcc-4.8-aarch64-linux-gnu binutils-aarch64-linux-gnu
+sudo apt-get install -y gcc-5-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
 # ARM hard-float (32bit) compiler
-sudo apt-get install -y gcc-4.8-arm-linux-gnueabihf binutils-arm-linux-gnueabihf
+sudo apt-get install -y gcc-5-arm-linux-gnueabihf binutils-arm-linux-gnueabihf
 
 # i386 dependencies
 sudo apt-get install -y libc6-dev-i386 linux-libc-dev:i386
@@ -36,13 +37,13 @@ wget -q https://storage.googleapis.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.
 tar -xf go${GO_VERSION}.linux-${ARCH}.tar.gz
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
-sudo chown vagrant:vagrant $SRCROOT
+sudo chown ubuntu:ubuntu $SRCROOT
 
 # Setup the GOPATH; even though the shared folder spec gives the working
 # directory the right user/group, we need to set it properly on the
 # parent path to allow subsequent "go get" commands to work.
 sudo mkdir -p $SRCPATH
-sudo chown -R vagrant:vagrant $SRCPATH 2>/dev/null || true
+sudo chown -R ubuntu:ubuntu $SRCPATH 2>/dev/null || true
 # ^^ silencing errors here because we expect this to fail for the shared folder
 
 cat <<EOF >/tmp/gopath.sh
@@ -63,8 +64,8 @@ sudo apt-get install -y docker-engine
 # Restart docker to make sure we get the latest version of the daemon if there is an upgrade
 sudo service docker restart
 
-# Make sure we can actually use docker as the vagrant user
-sudo usermod -aG docker vagrant
+# Make sure we can actually use docker as the ubuntu user
+sudo usermod -aG docker ubuntu
 
 # Setup Nomad for development
 cd /opt/gopath/src/github.com/hashicorp/nomad && make bootstrap
@@ -86,7 +87,7 @@ def configureVM(vmCfg, vmParams={
                   numCPUs: DEFAULT_CPU_COUNT,
                 }
                )
-  vmCfg.vm.box = "cbednarski/ubuntu-1404"
+  vmCfg.vm.box = "ubuntu/xenial64" # 16.04 LTS
 
   vmCfg.vm.provision "shell", inline: $script, privileged: false
   vmCfg.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/nomad'
@@ -98,7 +99,7 @@ def configureVM(vmCfg, vmParams={
   memory = 2048
 
   vmCfg.vm.provider "parallels" do |p, o|
-    o.vm.box = "parallels/ubuntu-14.04"
+    o.vm.box = "parallels/ubuntu-16.04"
     p.memory = memory
     p.cpus = cpus
   end
